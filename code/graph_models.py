@@ -224,6 +224,7 @@ class GATConv(MessagePassing):
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
 
     def message(self, x_i, x_j, edge_index, num_nodes):
+        print(f"🔧 [GAT DEBUG] x_i: {x_i.shape}, x_j: {x_j.shape}, att: {self.att.shape}")
         # Compute attention coefficients.
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
         alpha = F.leaky_relu(alpha, self.negative_slope)
