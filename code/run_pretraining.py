@@ -347,9 +347,11 @@ def main():
     print('Loading Model: ' + args.model_name)
     dx = len(tokenizer.dx_voc.idx2word)
     pr = len(tokenizer.proc_voc.idx2word)
-    final_vocab = dx + pr + 500
+    NUM_SPECIAL = 3
+    final_vocab = dx + pr + NUM_SPECIAL
     print("dx vocab =", dx)
     print("proc vocab =", pr)
+    print("special token =", NUM_SPECIAL)
     print("TOTAL vocab needed =", final_vocab)
 
     if args.use_pretrain:
@@ -359,6 +361,7 @@ def main():
     else:
         config = BertConfig(vocab_size_or_config_json_file=final_vocab)
         config.graph = args.graph
+        config.vocab_size = final_vocab 
         model = GBERT_Pretrain(config, tokenizer.dx_voc, tokenizer.proc_voc)
 
     logger.info('# of model parameters: ' + str(get_n_params(model)))
