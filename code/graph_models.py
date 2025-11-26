@@ -18,6 +18,10 @@ class OntologyEmbedding(nn.Module):
                  in_channels=100, out_channels=25, heads=4):
         super(OntologyEmbedding, self).__init__()
 
+        # DEBUG: In ra giá trị thực tế
+        print(f"DEBUG OntologyEmbedding: in_channels={in_channels}, out_channels={out_channels}, heads={heads}")
+        print(f"DEBUG: in_channels == heads * out_channels -> {in_channels} == {heads} * {out_channels} = {heads * out_channels}")
+
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
         stage_one_edges = build_stage_one_edges(res, graph_voc)
