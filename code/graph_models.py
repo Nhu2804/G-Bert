@@ -15,12 +15,8 @@ from build_tree import build_icd9_tree, build_proc_tree  # ĐỔI: build_atc_tre
 
 class OntologyEmbedding(nn.Module):
     def __init__(self, voc, build_tree_func,
-                 in_channels=300, out_channels=75, heads=4):  # SỬA: 300, 75, 4
+                 in_channels=300, out_channels=75, heads=4):
         super(OntologyEmbedding, self).__init__()
-
-        # DEBUG: In ra giá trị thực tế
-        print(f"DEBUG OntologyEmbedding: in_channels={in_channels}, out_channels={out_channels}, heads={heads}")
-        print(f"DEBUG: in_channels == heads * out_channels -> {in_channels} == {heads} * {out_channels} = {heads * out_channels}")
 
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
@@ -32,7 +28,7 @@ class OntologyEmbedding(nn.Module):
         self.graph_voc = graph_voc
 
         # construct model
-        assert in_channels == heads * out_channels  # 300 == 4 * 75 → ✅
+        assert in_channels == heads * out_channels
         self.g = GATConv(in_channels=in_channels,
                          out_channels=out_channels,
                          heads=heads)
@@ -217,17 +213,17 @@ class GATConv(MessagePassing):
 
     def forward(self, x, edge_index):
         """"""
-        edge_index = add_self_loops(edge_index, num_nodes=x.size(0))
+        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
 
-    def message(self, x_i, x_j, edge_index, num_nodes):
+    def message(self, edge_index_i, x_i, x_j, num_nodes):  # SỬA: Thêm edge_index_i
         # Compute attention coefficients.
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
         alpha = F.leaky_relu(alpha, self.negative_slope)
-        alpha = softmax(alpha, edge_index[0], num_nodes)
+        alpha = softmax(alpha, edge_index_i, num_nodes)  # SỬA: dùng edge_index_i
 
-        alpha = F.dropout(alpha, p=self.dropout)
+        alpha = F.dropout(alpha, p=self.dropout, training=self.training)  # SỬA: thêm training
 
         return x_j * alpha.view(-1, self.heads, 1)
 
