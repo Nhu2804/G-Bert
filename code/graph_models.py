@@ -114,7 +114,7 @@ class MessagePassing(nn.Module):
         update_args = [kwargs[arg] for arg in self.update_args]
 
         out = self.message(*message_args)
-        out = scatter(aggr, out, edge_index[0], dim_size=size)
+        out = scatter(out, edge_index[0], dim=0, reduce=aggr)
         out = self.update(out, *update_args)
 
         return out
@@ -214,6 +214,7 @@ class GATConv(MessagePassing):
     def forward(self, x, edge_index):
         """"""
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+        edge_index = edge_index.squeeze()
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
 
@@ -221,7 +222,7 @@ class GATConv(MessagePassing):
         # Compute attention coefficients.
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
         alpha = F.leaky_relu(alpha, self.negative_slope)
-        alpha = softmax(alpha, edge_index[0], num_nodes)
+        alpha = softmax(alpha, edge_index[0], num_nodes=x_i.size(0))
 
         alpha = F.dropout(alpha, p=self.dropout)
 
