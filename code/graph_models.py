@@ -257,8 +257,11 @@ class ConcatEmbeddings(nn.Module):
     def __init__(self, config, dx_voc, proc_voc):  # ĐỔI: rx_voc → proc_voc
         super(ConcatEmbeddings, self).__init__()
         # special token: "[PAD]", "[CLS]", "[MASK]"
+        NUM_SPECIAL = 3  # [PAD], [CLS], [MASK]
         self.special_embedding = nn.Parameter(
-            torch.Tensor(config.vocab_size - len(dx_voc.idx2word) - len(proc_voc.idx2word), config.hidden_size))  # ĐỔI: rx_voc → proc_voc
+            torch.Tensor(NUM_SPECIAL, config.hidden_size))
+        # cập nhật vocab đúng theo thủ thuật
+        config.vocab_size = NUM_SPECIAL + len(dx_voc.idx2word) + len(proc_voc.idx2word)
         self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,  # ĐỔI: rx_embedding → proc_embedding, build_atc_tree → build_proc_tree
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
