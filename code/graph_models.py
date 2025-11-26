@@ -17,12 +17,6 @@ class OntologyEmbedding(nn.Module):
     def __init__(self, voc, build_tree_func,
                  in_channels=100, out_channels=20, heads=5):
         super(OntologyEmbedding, self).__init__()
-        # THÊM DEBUG Ở ĐÂY
-        print(f"🔧 [DEBUG] GAT Config: in_channels={in_channels}, out_channels={out_channels}, heads={heads}")
-        if in_channels != heads * out_channels:
-            print(f"❌ [FIXING] Dimension mismatch: {in_channels} != {heads} * {out_channels}")
-            out_channels = in_channels // heads  # Auto-calculate
-            print(f"✅ [FIXED] New out_channels: {out_channels}")
 
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
@@ -219,12 +213,11 @@ class GATConv(MessagePassing):
 
     def forward(self, x, edge_index):
         """"""
-        edge_index = add_self_loops(edge_index, num_nodes=x.size(0))
+        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
 
     def message(self, x_i, x_j, edge_index, num_nodes):
-        print(f"🔧 [GAT DEBUG] x_i: {x_i.shape}, x_j: {x_j.shape}, att: {self.att.shape}")
         # Compute attention coefficients.
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
         alpha = F.leaky_relu(alpha, self.negative_slope)
@@ -257,11 +250,8 @@ class ConcatEmbeddings(nn.Module):
     def __init__(self, config, dx_voc, proc_voc):  # ĐỔI: rx_voc → proc_voc
         super(ConcatEmbeddings, self).__init__()
         # special token: "[PAD]", "[CLS]", "[MASK]"
-        NUM_SPECIAL = 3  # [PAD], [CLS], [MASK]
         self.special_embedding = nn.Parameter(
-            torch.Tensor(NUM_SPECIAL, config.hidden_size))
-        # cập nhật vocab đúng theo thủ thuật
-        config.vocab_size = NUM_SPECIAL + len(dx_voc.idx2word) + len(proc_voc.idx2word)
+            torch.Tensor(config.vocab_size - len(dx_voc.idx2word) - len(proc_voc.idx2word), config.hidden_size))  # ĐỔI: rx_voc → proc_voc
         self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,  # ĐỔI: rx_embedding → proc_embedding, build_atc_tree → build_proc_tree
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
