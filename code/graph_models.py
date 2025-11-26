@@ -6,7 +6,7 @@ import numpy as np
 
 import inspect
 
-from torch_geometric.utils import scatter_, softmax, add_self_loops
+from torch_geometric.utils import scatter, softmax, add_self_loops
 from torch_geometric.nn.inits import glorot, zeros, uniform
 
 from build_tree import build_stage_one_edges, build_stage_two_edges, build_cominbed_edges
@@ -114,7 +114,7 @@ class MessagePassing(nn.Module):
         update_args = [kwargs[arg] for arg in self.update_args]
 
         out = self.message(*message_args)
-        out = scatter_(aggr, out, edge_index[0], dim_size=size)
+        out = scatter(aggr, out, edge_index[0], dim_size=size)
         out = self.update(out, *update_args)
 
         return out
