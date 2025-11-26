@@ -15,6 +15,16 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import torch
+# FIX NUMPY IMPORT ISSUE - THÊM ĐOẠN NÀY
+import sys
+try:
+    # For numpy >= 1.25
+    from numpy.core import numeric as _numeric
+    sys.modules['numpy._core.numeric'] = _numeric
+    sys.modules['numpy._core'] = sys.modules['numpy.core']
+except ImportError:
+    # For older numpy versions
+    pass
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.optim import Adam
