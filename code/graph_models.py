@@ -15,7 +15,7 @@ from build_tree import build_icd9_tree, build_proc_tree  # ĐỔI: build_atc_tre
 
 class OntologyEmbedding(nn.Module):
     def __init__(self, voc, build_tree_func,
-                 in_channels=100, out_channels=20, heads=5):
+                 in_channels=100, out_channels=25, heads=4):
         super(OntologyEmbedding, self).__init__()
 
         # initial tree edges

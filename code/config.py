@@ -19,7 +19,7 @@ class BertConfig(object):
                  type_vocab_size=2,
                  initializer_range=0.02,
                  graph=False,
-                 graph_hidden_size=75,
+                 graph_hidden_size=76,
                  graph_heads=4):
         """Constructs BertConfig.
 
