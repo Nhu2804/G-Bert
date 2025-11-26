@@ -233,8 +233,13 @@ def load_dataset(args):
     # load tokenizer
     tokenizer = EHRTokenizer(data_dir)
 
-    # load data - SỬA DÒNG NÀY
+    # load data
     data = safe_pickle_load(os.path.join(data_dir, 'data-multi-visit.pkl'))
+    
+    # DEBUG: Kiểm tra data
+    print(f"DEBUG: data shape = {data.shape}")
+    print(f"DEBUG: data columns = {data.columns.tolist()}")
+    print(f"DEBUG: unique SUBJECT_IDs = {data['SUBJECT_ID'].nunique()}")
 
     # load trian, eval, test data
     ids_file = [os.path.join(data_dir, 'train-id.txt'),
@@ -253,7 +258,33 @@ def load_dataset(args):
                 ids.append(int(line.rstrip('\n')))
         return data[data['SUBJECT_ID'].isin(ids)].reset_index(drop=True)
 
-    return tokenizer, tuple(map(lambda x: EHRDataset(load_ids(data, x), tokenizer, max_seq_len), ids_file))
+    # DEBUG: Kiểm tra từng dataset
+    datasets = []
+    for i, file_name in enumerate(ids_file):
+        subset_data = load_ids(data, file_name)
+        dataset = EHRDataset(subset_data, tokenizer, max_seq_len)
+        datasets.append(dataset)
+        print(f"DEBUG: {['train', 'eval', 'test'][i]} - data shape: {subset_data.shape}, dataset size: {len(dataset)}")
+        
+        # DEBUG chi tiết cho train dataset
+        if i == 0 and len(dataset) == 0:
+            print("❌ TRAIN DATASET EMPTY - Investigating...")
+            print(f"DEBUG: File {file_name} has {len(open(file_name).readlines())} lines")
+            print(f"DEBUG: Filtered data has {subset_data.shape[0]} rows")
+            print(f"DEBUG: Unique SUBJECT_IDs in filtered data: {subset_data['SUBJECT_ID'].nunique()}")
+            
+            # Kiểm tra transform_data
+            test_records = {}
+            for subject_id in subset_data['SUBJECT_ID'].unique()[:5]:  # Check first 5
+                item_df = subset_data[subset_data['SUBJECT_ID'] == subject_id]
+                patient = []
+                for _, row in item_df.iterrows():
+                    admission = [list(row['ICD9_CODE']), list(row['PROC_CODE'])]
+                    patient.append(admission)
+                test_records[subject_id] = patient
+                print(f"DEBUG: subject {subject_id} has {len(patient)} visits")
+            
+    return tokenizer, tuple(datasets)
 
 
 def main():
@@ -351,6 +382,18 @@ def main():
 
     print("Loading Dataset")
     tokenizer, (train_dataset, eval_dataset, test_dataset) = load_dataset(args)
+    # DEBUG CRITICAL: Kiểm tra dataset sizes
+    print(f"🔍 CRITICAL DEBUG: train_dataset size = {len(train_dataset)}")
+    print(f"🔍 CRITICAL DEBUG: eval_dataset size = {len(eval_dataset)}")
+    print(f"🔍 CRITICAL DEBUG: test_dataset size = {len(test_dataset)}")
+
+    if len(train_dataset) == 0:
+        print("❌ ERROR: train_dataset is empty! Cannot create DataLoader.")
+        print("❌ Training will fail. Check data files and filtering logic.")
+        # Tạm thời skip training nếu dataset rỗng
+        if args.do_train:
+            print("🚫 Skipping training due to empty dataset")
+            return
     train_dataloader = DataLoader(train_dataset,
                                   sampler=RandomSampler(train_dataset),
                                   batch_size=1)
