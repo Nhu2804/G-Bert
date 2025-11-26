@@ -17,6 +17,12 @@ class OntologyEmbedding(nn.Module):
     def __init__(self, voc, build_tree_func,
                  in_channels=100, out_channels=20, heads=5):
         super(OntologyEmbedding, self).__init__()
+        # THÊM DEBUG Ở ĐÂY
+        print(f"🔧 [DEBUG] GAT Config: in_channels={in_channels}, out_channels={out_channels}, heads={heads}")
+        if in_channels != heads * out_channels:
+            print(f"❌ [FIXING] Dimension mismatch: {in_channels} != {heads} * {out_channels}")
+            out_channels = in_channels // heads  # Auto-calculate
+            print(f"✅ [FIXED] New out_channels: {out_channels}")
 
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
