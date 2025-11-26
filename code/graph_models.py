@@ -15,7 +15,7 @@ from build_tree import build_icd9_tree, build_proc_tree  # ĐỔI: build_atc_tre
 
 class OntologyEmbedding(nn.Module):
     def __init__(self, voc, build_tree_func,
-                 in_channels=100, out_channels=25, heads=4):
+                 in_channels=300, out_channels=75, heads=4):  # SỬA: 300, 75, 4
         super(OntologyEmbedding, self).__init__()
 
         # DEBUG: In ra giá trị thực tế
@@ -32,7 +32,7 @@ class OntologyEmbedding(nn.Module):
         self.graph_voc = graph_voc
 
         # construct model
-        assert in_channels == heads * out_channels
+        assert in_channels == heads * out_channels  # 300 == 4 * 75 → ✅
         self.g = GATConv(in_channels=in_channels,
                          out_channels=out_channels,
                          heads=heads)
