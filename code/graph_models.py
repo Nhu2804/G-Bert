@@ -85,8 +85,8 @@ class MessagePassing(nn.Module):
     def __init__(self, aggr='add'):
         super(MessagePassing, self).__init__()
 
-        self.message_args = inspect.getargspec(self.message)[0][1:]
-        self.update_args = inspect.getargspec(self.update)[0][2:]
+        self.message_args = inspect.getfullargspec(self.message).args[1:]
+        self.update_args = inspect.getfullargspec(self.update).args[2:]
 
     def propagate(self, aggr, edge_index, **kwargs):
         r"""The initial call to start propagating messages.

@@ -321,15 +321,22 @@ def main():
                                  batch_size=args.batch_size)
 
     print('Loading Model: ' + args.model_name)
+    dx = len(tokenizer.dx_voc.idx2word)
+    pr = len(tokenizer.proc_voc.idx2word)
+    final_vocab = dx + pr + 500
+    print("dx vocab =", dx)
+    print("proc vocab =", pr)
+    print("TOTAL vocab needed =", final_vocab)
+
     if args.use_pretrain:
         logger.info("Use Pretraining model")
         model = GBERT_Pretrain.from_pretrained(args.pretrain_dir, dx_voc=tokenizer.dx_voc,
-                                               proc_voc=tokenizer.proc_voc)  # ĐỔI: rx_voc → proc_voc
+                                               proc_voc=tokenizer.proc_voc)
     else:
-        config = BertConfig(
-            vocab_size_or_config_json_file=len(tokenizer.vocab.word2idx))
+        config = BertConfig(vocab_size_or_config_json_file=final_vocab)
         config.graph = args.graph
-        model = GBERT_Pretrain(config, tokenizer.dx_voc, tokenizer.proc_voc)  # ĐỔI: rx_voc → proc_voc
+        model = GBERT_Pretrain(config, tokenizer.dx_voc, tokenizer.proc_voc)
+
     logger.info('# of model parameters: ' + str(get_n_params(model)))
 
     model.to(device)

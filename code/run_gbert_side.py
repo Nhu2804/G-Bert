@@ -14,6 +14,47 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import torch
+# FIX NUMPY IMPORT ISSUE - THÊM ĐOẠN NÀY
+import sys
+try:
+    # For numpy >= 1.25
+    from numpy.core import numeric as _numeric
+    sys.modules['numpy._core.numeric'] = _numeric
+    sys.modules['numpy._core'] = sys.modules['numpy.core']
+except ImportError:
+    # For older numpy versions
+    pass
+
+# THÊM HÀM SAFE PICKLE LOAD
+def safe_pickle_load(filepath):
+    """Safely load pickle files with compatibility handling"""
+    import pickle
+    import pandas as pd
+    
+    try:
+        # Thử load thông thường trước
+        return pd.read_pickle(filepath)
+    except Exception as e:
+        print(f"pd.read_pickle failed for {filepath}, trying alternatives...")
+        
+        # Thử load với pickle trực tiếp
+        try:
+            with open(filepath, 'rb') as f:
+                data = pickle.load(f)
+            print(f"✅ Loaded {filepath} with direct pickle")
+            return data
+        except Exception as e2:
+            print(f"Direct pickle failed: {e2}")
+            
+            # Thử với encoding latin1 (cho pickle cũ)
+            try:
+                with open(filepath, 'rb') as f:
+                    data = pickle.load(f, encoding='latin1')
+                print(f"✅ Loaded {filepath} with latin1 encoding")
+                return data
+            except Exception as e3:
+                print(f"All methods failed: {e3}")
+                raise e3
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.optim import Adam
@@ -204,10 +245,11 @@ def load_dataset(args):
     # load tokenizer
     tokenizer = EHRTokenizer(data_dir)
 
-    # load data
-    data = pd.read_pickle(os.path.join(data_dir, 'data-multi-visit.pkl'))
+    # load data - SỬA 2 DÒNG NÀY
+    data = safe_pickle_load(os.path.join(data_dir, 'data-multi-visit.pkl'))
     # load side
-    side_pd = pd.read_pickle(os.path.join(data_dir, 'data-multi-side.pkl'))
+    side_pd = safe_pickle_load(os.path.join(data_dir, 'data-multi-side.pkl'))
+    
     # concat
     data = data.merge(side_pd, how='inner', on=['SUBJECT_ID', 'HADM_ID'])
 
