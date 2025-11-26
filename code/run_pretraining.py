@@ -23,7 +23,11 @@ from tensorboardX import SummaryWriter
 from utils import metric_report, t2n, get_n_params
 from config import BertConfig
 from predictive_models import GBERT_Pretrain
-from sklearn.metrics import jaccard_similarity_score, f1_score, roc_auc_score, average_precision_score
+try:
+    from sklearn.metrics import jaccard_score as jaccard_similarity_score
+except ImportError:
+    from sklearn.metrics import jaccard_similarity_score
+from sklearn.metrics import f1_score, roc_auc_score, average_precision_score
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
