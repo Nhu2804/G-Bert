@@ -263,17 +263,96 @@ def load_gamenet_multi_visit_data_with_pro(file_name='data_gamenet.pkl'):
 
     return data, unique_pro, unique_diag, unique_proc  # ĐỔI: unique_med → unique_proc
 
+def create_real_multi_visit_data():
+    """Tạo multi-visit data thực sự từ raw data"""
+    print("Creating REAL multi-visit data from raw files...")
+    
+    # Load raw procedures và diagnoses
+    proc_raw = pd.read_csv('PROCEDURES_ICD.csv')
+    diag_raw = pd.read_csv('DIAGNOSES_ICD.csv')
+    
+    # CHUYỂN ĐỔI ICD9_CODE THÀNH STRING
+    proc_raw['ICD9_CODE'] = proc_raw['ICD9_CODE'].astype(str)
+    diag_raw['ICD9_CODE'] = diag_raw['ICD9_CODE'].astype(str)
+    
+    # Tìm patients có nhiều admissions (HADM_ID khác nhau)
+    patient_visit_counts = diag_raw.groupby('SUBJECT_ID')['HADM_ID'].nunique()
+    multi_visit_patients = patient_visit_counts[patient_visit_counts >= 2].index
+    
+    print(f"Found {len(multi_visit_patients)} patients with 2+ visits")
+    
+    multi_visit_records = []
+    
+    for patient_id in multi_visit_patients:
+        # Lấy tất cả admissions của patient
+        patient_diag = diag_raw[diag_raw['SUBJECT_ID'] == patient_id]
+        patient_proc = proc_raw[proc_raw['SUBJECT_ID'] == patient_id]
+        
+        admissions = patient_diag['HADM_ID'].unique()
+        
+        # Tạo record cho mỗi admission
+        for adm_id in admissions:
+            adm_diag_codes = patient_diag[patient_diag['HADM_ID'] == adm_id]['ICD9_CODE'].unique().tolist()
+            adm_proc_codes = patient_proc[patient_proc['HADM_ID'] == adm_id]['ICD9_CODE'].unique().tolist()
+            
+            # Chỉ lấy admissions có cả diagnosis và procedure
+            if adm_diag_codes and adm_proc_codes:
+                record = {
+                    'SUBJECT_ID': patient_id,
+                    'HADM_ID': adm_id,
+                    'ICD9_CODE': adm_diag_codes,
+                    'PROC_CODE': adm_proc_codes
+                }
+                multi_visit_records.append(record)
+    
+    multi_visit_df = pd.DataFrame(multi_visit_records)
+    
+    # Lọc patients có ít nhất 2 visits hợp lệ
+    visit_counts = multi_visit_df.groupby('SUBJECT_ID').size()
+    valid_patients = visit_counts[visit_counts >= 2].index
+    multi_visit_df = multi_visit_df[multi_visit_df['SUBJECT_ID'].isin(valid_patients)]
+    
+    print(f"Final multi-visit data: {multi_visit_df.shape}")
+    print(f"Patients with 2+ visits: {multi_visit_df['SUBJECT_ID'].nunique()}")
+    
+    # DEBUG: Kiểm tra chi tiết
+    if len(multi_visit_df) > 0:
+        sample_patient = multi_visit_df['SUBJECT_ID'].iloc[0]
+        patient_visits = multi_visit_df[multi_visit_df['SUBJECT_ID'] == sample_patient]
+        print(f"Sample patient {sample_patient} has {len(patient_visits)} visits")
+        print(f"Sample ICD9_CODE type: {type(multi_visit_df['ICD9_CODE'].iloc[0][0])}")
+        print(f"Sample PROC_CODE type: {type(multi_visit_df['PROC_CODE'].iloc[0][0])}")
+    
+    return multi_visit_df
 
 def main():
     print('-'*20 + '\ndata-single processing')
     data_single_visit, diag1, proc1 = run(visit_range=(1, 2))
     
     print('-'*20 + '\ndata-multi processing - USING SINGLE VISIT DATA')
-    # Dùng single-visit data thay cho multi-visit
-    data_multi_visit = data_single_visit.copy()
-    diag2 = diag1
-    proc2 = proc1
-    pro = diag1  # Dùng diagnosis codes cho procedure codes demo
+    # THAY THẾ: Tạo multi-visit data thực sự
+    data_multi_visit = create_real_multi_visit_data()
+    
+    # Kiểm tra critical: data multi-visit có patients với 2+ visits không?
+    if len(data_multi_visit) == 0:
+        print("❌ CRITICAL ERROR: No multi-visit data created!")
+        # Fallback: dùng single-visit data nhưng cảnh báo
+        print("⚠️  Using single-visit data as fallback (NOT IDEAL FOR GBert)")
+        data_multi_visit = data_single_visit.copy()
+        diag2 = diag1
+        proc2 = proc1
+        pro = diag1
+    else:
+        visit_counts = data_multi_visit.groupby('SUBJECT_ID').size()
+        print(f"✅ Multi-visit validation: {len(visit_counts)} patients, min visits: {visit_counts.min()}, max visits: {visit_counts.max()}")
+        
+        if visit_counts.min() < 2:
+            print("❌ WARNING: Multi-visit data contains patients with < 2 visits!")
+        
+        # Tạo vocabulary từ real data
+        diag2 = set([code for codes in data_multi_visit['ICD9_CODE'] for code in codes])
+        proc2 = set([code for codes in data_multi_visit['PROC_CODE'] for code in codes])
+        pro = proc2  # Dùng procedure codes cho px-vocab
 
     unique_diag = diag1 | diag2
     unique_proc = proc1 | proc2

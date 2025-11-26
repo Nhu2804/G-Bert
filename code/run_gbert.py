@@ -233,13 +233,8 @@ def load_dataset(args):
     # load tokenizer
     tokenizer = EHRTokenizer(data_dir)
 
-    # load data
+    # load data - SỬA DÒNG NÀY
     data = safe_pickle_load(os.path.join(data_dir, 'data-multi-visit.pkl'))
-    
-    # DEBUG: Kiểm tra data
-    print(f"DEBUG: data shape = {data.shape}")
-    print(f"DEBUG: data columns = {data.columns.tolist()}")
-    print(f"DEBUG: unique SUBJECT_IDs = {data['SUBJECT_ID'].nunique()}")
 
     # load trian, eval, test data
     ids_file = [os.path.join(data_dir, 'train-id.txt'),
@@ -258,33 +253,7 @@ def load_dataset(args):
                 ids.append(int(line.rstrip('\n')))
         return data[data['SUBJECT_ID'].isin(ids)].reset_index(drop=True)
 
-    # DEBUG: Kiểm tra từng dataset
-    datasets = []
-    for i, file_name in enumerate(ids_file):
-        subset_data = load_ids(data, file_name)
-        dataset = EHRDataset(subset_data, tokenizer, max_seq_len)
-        datasets.append(dataset)
-        print(f"DEBUG: {['train', 'eval', 'test'][i]} - data shape: {subset_data.shape}, dataset size: {len(dataset)}")
-        
-        # DEBUG chi tiết cho train dataset
-        if i == 0 and len(dataset) == 0:
-            print("❌ TRAIN DATASET EMPTY - Investigating...")
-            print(f"DEBUG: File {file_name} has {len(open(file_name).readlines())} lines")
-            print(f"DEBUG: Filtered data has {subset_data.shape[0]} rows")
-            print(f"DEBUG: Unique SUBJECT_IDs in filtered data: {subset_data['SUBJECT_ID'].nunique()}")
-            
-            # Kiểm tra transform_data
-            test_records = {}
-            for subject_id in subset_data['SUBJECT_ID'].unique()[:5]:  # Check first 5
-                item_df = subset_data[subset_data['SUBJECT_ID'] == subject_id]
-                patient = []
-                for _, row in item_df.iterrows():
-                    admission = [list(row['ICD9_CODE']), list(row['PROC_CODE'])]
-                    patient.append(admission)
-                test_records[subject_id] = patient
-                print(f"DEBUG: subject {subject_id} has {len(patient)} visits")
-            
-    return tokenizer, tuple(datasets)
+    return tokenizer, tuple(map(lambda x: EHRDataset(load_ids(data, x), tokenizer, max_seq_len), ids_file))
 
 
 def main():
@@ -382,43 +351,15 @@ def main():
 
     print("Loading Dataset")
     tokenizer, (train_dataset, eval_dataset, test_dataset) = load_dataset(args)
-    # FIX CRITICAL: Kiểm tra ngay sau load_dataset
-    print(f"🔍 CRITICAL DEBUG: train_dataset size = {len(train_dataset)}")
-    print(f"🔍 CRITICAL DEBUG: eval_dataset size = {len(eval_dataset)}")
-    print(f"🔍 CRITICAL DEBUG: test_dataset size = {len(test_dataset)}")
-
-    if len(train_dataset) == 0:
-        print("❌ ERROR: train_dataset is empty! Creating dummy dataset...")
-        
-        # Tạo dummy dataset để tiếp tục
-        class DummyDataset(Dataset):
-            def __len__(self): 
-                return 10  # Đủ để training test
-            def __getitem__(self, idx):
-                # Tạo data với shape tương tự real data
-                seq_len = 55
-                dx_voc_size = len(tokenizer.dx_voc_multi.word2idx)
-                proc_voc_size = len(tokenizer.proc_voc_multi.word2idx)
-                
-                input_ids = torch.zeros(110, seq_len)  # 2*max_len*adm
-                dx_labels = torch.zeros(5, dx_voc_size)  # (adm-1, dx_voc_size)  
-                proc_labels = torch.zeros(5, proc_voc_size)  # (adm-1, proc_voc_size)
-                
-                return (input_ids, dx_labels, proc_labels)
-        
-        train_dataset = DummyDataset()
-        print("✅ Created dummy train_dataset for testing")
-
-    # CHỈ tạo DataLoader sau khi đảm bảo dataset không rỗng
     train_dataloader = DataLoader(train_dataset,
-                                sampler=RandomSampler(train_dataset),
-                                batch_size=1)
+                                  sampler=RandomSampler(train_dataset),
+                                  batch_size=1)
     eval_dataloader = DataLoader(eval_dataset,
-                                sampler=SequentialSampler(eval_dataset),
-                                batch_size=1)
+                                 sampler=SequentialSampler(eval_dataset),
+                                 batch_size=1)
     test_dataloader = DataLoader(test_dataset,
-                                sampler=SequentialSampler(test_dataset),
-                                batch_size=1)
+                                 sampler=SequentialSampler(test_dataset),
+                                 batch_size=1)
 
     print('Loading Model: ' + args.model_name)
     if args.use_pretrain:
