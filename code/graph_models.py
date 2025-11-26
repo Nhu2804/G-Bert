@@ -247,12 +247,24 @@ class ConcatEmbeddings(nn.Module):
     """Concat procedure and dx ontology embedding for easy access
     """
 
-    def __init__(self, config, dx_voc, proc_voc):  # ĐỔI: rx_voc → proc_voc
+    def __init__(self, config, dx_voc, proc_voc):
         super(ConcatEmbeddings, self).__init__()
-        # special token: "[PAD]", "[CLS]", "[MASK]"
+        
+        # TÍNH LẠI VOCAB SIZE THỰC TẾ
+        actual_vocab_size = len(dx_voc.idx2word) + len(proc_voc.idx2word) + 3  # +3 for special tokens
+        
+        # Nếu config.vocab_size không đúng, dùng actual_vocab_size
+        if config.vocab_size != actual_vocab_size:
+            print(f"⚠️ Correcting vocab_size: {config.vocab_size} -> {actual_vocab_size}")
+            config.vocab_size = actual_vocab_size
+        
+        # Số special tokens luôn là 3
+        num_special_tokens = 3  # [PAD], [CLS], [MASK]
+        
         self.special_embedding = nn.Parameter(
-            torch.Tensor(config.vocab_size - len(dx_voc.idx2word) - len(proc_voc.idx2word), config.hidden_size))  # ĐỔI: rx_voc → proc_voc
-        self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,  # ĐỔI: rx_embedding → proc_embedding, build_atc_tree → build_proc_tree
+            torch.Tensor(num_special_tokens, config.hidden_size))
+        
+        self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
         self.dx_embedding = OntologyEmbedding(dx_voc, build_icd9_tree,
