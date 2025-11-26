@@ -15,6 +15,32 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import torch
+# FIX NUMPY IMPORT
+import sys
+try:
+    from numpy.core import numeric as _numeric
+    sys.modules['numpy._core.numeric'] = _numeric
+    sys.modules['numpy._core'] = sys.modules['numpy.core']
+except ImportError:
+    pass
+
+# SAFE PICKLE LOAD FUNCTION
+def safe_pickle_load(filepath):
+    import pickle
+    try:
+        return pd.read_pickle(filepath)
+    except Exception as e:
+        print(f"pd.read_pickle failed, trying direct pickle...")
+        try:
+            with open(filepath, 'rb') as f:
+                return pickle.load(f)
+        except Exception as e2:
+            try:
+                with open(filepath, 'rb') as f:
+                    return pickle.load(f, encoding='latin1')
+            except Exception as e3:
+                print(f"All methods failed: {e3}")
+                raise e3
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.optim import Adam
@@ -185,11 +211,9 @@ def load_dataset(args):
     # load tokenizer
     tokenizer = EHRTokenizer(data_dir)
 
-    # load data
-    data_multi = pd.read_pickle(os.path.join(
-        data_dir, 'data-multi-visit.pkl')).iloc[:, :4]
-    data_single = pd.read_pickle(
-        os.path.join(data_dir, 'data-single-visit.pkl'))
+    # load data - SỬA 2 DÒNG NÀY
+    data_multi = safe_pickle_load(os.path.join(data_dir, 'data-multi-visit.pkl')).iloc[:, :4]
+    data_single = safe_pickle_load(os.path.join(data_dir, 'data-single-visit.pkl'))
 
     # load trian, eval, test data
     ids_file = [os.path.join(data_dir, 'train-id.txt'),
