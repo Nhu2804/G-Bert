@@ -20,31 +20,31 @@ class OntologyEmbedding(nn.Module):
 
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
-        codes = list(voc.idx2word.values())
-        print("VOC input size:", len(codes))
-        print("VOC sample:", codes[:10])
-        print("GRAPH_voc size:", len(graph_voc.word2idx))
-        print("GRAPH_voc keys:", list(graph_voc.word2idx.keys())[:20])
-        print("Res len:", len(res))
-        print("Res sample:", res[:5])
-        stage_one_edges = build_stage_one_edges(res, graph_voc)
-        stage_two_edges = build_stage_two_edges(res, graph_voc)
 
-        print("\n========== EDGES DEBUG ==========")
-        print("edges1 shape:", np.array(stage_one_edges).shape)
-        print("edges2 shape:", np.array(stage_two_edges).shape)
+        if build_tree_func == build_proc_tree:
+            # PROC: dùng graph đơn giản root-only
+            edges = []
+            for item in res:
+                code = item[0]
+                root = item[-1]
+                c = graph_voc.word2idx[code]
+                r = graph_voc.word2idx[root]
+                edges.append([c, r])
+                edges.append([r, c])
+            self.edges1 = torch.tensor(edges)
+            self.edges2 = self.edges1
+        else:
+            # ICD9 giữ nguyên 
+            self.edges1 = torch.tensor(build_stage_one_edges(res, graph_voc))
+            self.edges2 = torch.tensor(build_stage_two_edges(res, graph_voc))
 
-        if len(stage_one_edges) > 0:
-            print("edges1 sample:", stage_one_edges[:10])
-            print("max index in edges1:", np.max(stage_one_edges))
-        if len(stage_two_edges) > 0:
-            print("edges2 sample:", stage_two_edges[:10])
-            print("max index in edges2:", np.max(stage_two_edges))
-        print("=================================\n")
+        print("=== PROC GRAPH ===" if build_tree_func == build_proc_tree else "=== ICD GRAPH ===")
+        print("num nodes:", len(graph_voc.word2idx))
+        print("num edges:", len(self.edges1))
+        print("edge sample:", self.edges1[:10])
+        print("node sample:", list(graph_voc.word2idx.keys())[:20])
 
-
-        self.edges1 = torch.tensor(stage_one_edges)
-        self.edges2 = torch.tensor(stage_two_edges)
+      
         self.graph_voc = graph_voc
 
         # construct model
