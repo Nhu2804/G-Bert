@@ -31,20 +31,20 @@ class OntologyEmbedding(nn.Module):
                 r = graph_voc.word2idx[root]
                 edges.append([c, r])
                 edges.append([r, c])
-            self.edges1 = torch.tensor(edges)
-            self.edges2 = self.edges1
+
+            edges = torch.tensor(edges, dtype=torch.long)   # <=== ép kiểu long
+            edges = edges.t().contiguous()                  # <=== chuyển sang [2, E]
+
+            self.edges1 = edges
+            self.edges2 = edges
         else:
-            # ICD9 giữ nguyên 
-            self.edges1 = torch.tensor(build_stage_one_edges(res, graph_voc))
-            self.edges2 = torch.tensor(build_stage_two_edges(res, graph_voc))
+            self.edges1 = torch.tensor(build_stage_one_edges(res, graph_voc), dtype=torch.long)
+            self.edges2 = torch.tensor(build_stage_two_edges(res, graph_voc), dtype=torch.long)
 
         print("=== PROC GRAPH ===" if build_tree_func == build_proc_tree else "=== ICD GRAPH ===")
         print("num nodes:", len(graph_voc.word2idx))
-        print("num edges:", len(self.edges1))
-        print("edge sample:", self.edges1[:10])
-        print("node sample:", list(graph_voc.word2idx.keys())[:20])
-
-      
+        print("num edges:", self.edges1.shape)
+        print("edge sample:", self.edges1[:, :10])
         self.graph_voc = graph_voc
 
         # construct model
@@ -233,6 +233,7 @@ class GATConv(MessagePassing):
 
     def forward(self, x, edge_index):
         """"""
+        edge_index = edge_index.long()   # <=== thêm cái này
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
@@ -275,7 +276,6 @@ class ConcatEmbeddings(nn.Module):
         self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,  # ĐỔI: rx_embedding → proc_embedding, build_atc_tree → build_proc_tree
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
-        
         self.dx_embedding = OntologyEmbedding(dx_voc, build_icd9_tree,
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
