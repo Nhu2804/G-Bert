@@ -119,7 +119,7 @@ class MessagePassing(nn.Module):
         update_args = [kwargs[arg] for arg in self.update_args]
 
         out = self.message(*message_args)
-        out = scatter(aggr, out, edge_index[0], dim_size=size)
+        out = scatter(out, edge_index[0], dim=0, dim_size=size)
         out = self.update(out, *update_args)
 
         return out
