@@ -173,10 +173,10 @@ def build_proc_tree(unique_codes):
     graph_voc = Voc()
 
     root_node = 'proc_root'
-    graph_voc.add_word(root_node)
+    graph_voc.add_sentence([root_node])   # <— sửa chỗ này!
 
     for code in unique_codes:
-        graph_voc.add_word(code)
+        graph_voc.add_sentence([code])    # <— sửa chỗ này!
         sample = [code, root_node]
         res.append(sample)
 
