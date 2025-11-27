@@ -100,26 +100,21 @@ class MessagePassing(nn.Module):
         size = None
         message_args = []
         for arg in self.message_args:
-            # *** SỬA: xử lý riêng edge_index_i / edge_index_j ***
             if arg == 'edge_index_i':
-                # truyền trực tiếp danh sách node nguồn (source indices)
                 message_args.append(edge_index[0])
             elif arg == 'edge_index_j':
-                # nếu cần, truyền node đích
                 message_args.append(edge_index[1])
-
             elif arg[-2:] == '_i':
                 tmp = kwargs[arg[:-2]]
                 size = tmp.size(0)
                 message_args.append(tmp[edge_index[0]])
-
             elif arg[-2:] == '_j':
                 tmp = kwargs[arg[:-2]]
                 size = tmp.size(0)
                 message_args.append(tmp[edge_index[1]])
-
             else:
                 message_args.append(kwargs[arg])
+
 
         update_args = [kwargs[arg] for arg in self.update_args]
 
@@ -227,7 +222,7 @@ class GATConv(MessagePassing):
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
 
-    def message(self, edge_index_i, x_i, x_j, num_nodes):  # SỬA: Thêm edge_index_i
+    def message(self, x_i, x_j, edge_index_i, num_nodes):
         # Compute attention coefficients.
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
         alpha = F.leaky_relu(alpha, self.negative_slope)
