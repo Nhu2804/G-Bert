@@ -100,14 +100,24 @@ class MessagePassing(nn.Module):
         size = None
         message_args = []
         for arg in self.message_args:
-            if arg[-2:] == '_i':
+            # *** SỬA: xử lý riêng edge_index_i / edge_index_j ***
+            if arg == 'edge_index_i':
+                # truyền trực tiếp danh sách node nguồn (source indices)
+                message_args.append(edge_index[0])
+            elif arg == 'edge_index_j':
+                # nếu cần, truyền node đích
+                message_args.append(edge_index[1])
+
+            elif arg[-2:] == '_i':
                 tmp = kwargs[arg[:-2]]
                 size = tmp.size(0)
                 message_args.append(tmp[edge_index[0]])
+
             elif arg[-2:] == '_j':
                 tmp = kwargs[arg[:-2]]
                 size = tmp.size(0)
                 message_args.append(tmp[edge_index[1]])
+
             else:
                 message_args.append(kwargs[arg])
 
