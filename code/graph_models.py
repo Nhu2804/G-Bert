@@ -20,6 +20,13 @@ class OntologyEmbedding(nn.Module):
 
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
+        codes = list(voc.idx2word.values())
+        print("VOC input size:", len(codes))
+        print("VOC sample:", codes[:10])
+        print("GRAPH_voc size:", len(graph_voc.word2idx))
+        print("GRAPH_voc keys:", list(graph_voc.word2idx.keys())[:20])
+        print("Res len:", len(res))
+        print("Res sample:", res[:5])
         stage_one_edges = build_stage_one_edges(res, graph_voc)
         stage_two_edges = build_stage_two_edges(res, graph_voc)
 
