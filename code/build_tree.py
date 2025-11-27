@@ -164,40 +164,24 @@ PROCEDURE (THAY THẾ ATC)
 """
 
 
-def build_proc_tree(unique_codes):  # ĐỔI: build_atc_tree → build_proc_tree
+def build_proc_tree(unique_codes):
     """
-    Build procedure tree hierarchy
-    Procedures use ICD-9 codes, so we can use similar hierarchy as diagnosis
+    Build procedure ontology for numeric internal procedure codes.
+    Because procedure codes are not actual ICD-9, we use a simple root → code hierarchy.
     """
     res = []
     graph_voc = Voc()
 
-    root_node = 'proc_root'  # ĐỔI: atc_root → proc_root
-    
-    # Procedure codes cũng là ICD-9, nên dùng hierarchy tương tự diagnosis
-    level3_dict = expand_level2()  # Dùng chung hierarchy với diagnosis
-    
+    root_node = 'proc_root'
+    graph_voc.add_word(root_node)
+
     for code in unique_codes:
-        # Procedure codes thường có format tương tự diagnosis ICD-9
-        level1 = code  # Full procedure code (e.g., "9904")
-        
-        # Tạo hierarchy cho procedure codes
-        if code.startswith('V') or code.startswith('E'):
-            # V và E codes có format đặc biệt
-            level2 = code[:4]  # First 4 characters for V/E codes
-        else:
-            # Regular procedure codes - thường là numeric
-            level2 = code[:3] if len(code) >= 3 else code  # First 3 characters
-        
-        level3 = level3_dict.get(level2, 'proc_category')  # Dùng category từ ICD-9 hoặc mặc định
-        level4 = root_node
-
-        sample = [level1, level2, level3, level4]
-
-        graph_voc.add_sentence(sample)
+        graph_voc.add_word(code)
+        sample = [code, root_node]
         res.append(sample)
 
     return res, graph_voc
+
 
 
 # GIỮ LẠI HÀM ATC CŨ ĐỂ TRÁNH LỖI IMPORT, NHƯNG ĐỔI TÊN
