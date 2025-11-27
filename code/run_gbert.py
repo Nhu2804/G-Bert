@@ -446,6 +446,20 @@ def main():
                 for k, v in proc_acc_container.items():  # ĐỔI: rx_acc_container → proc_acc_container
                     writer.add_scalar(
                         'eval/{}'.format(k), v, global_step)
+                print("\n===== EVAL METRICS =====")
+                for k, v in proc_acc_container.items():
+                    print(f"{k}: {v:.4f}")
+                print("========================\n")
+
+
+                # save metrics to file
+                with open(os.path.join(args.output_dir, "eval_metrics.txt"), "a") as f:
+                    f.write(f"Epoch {global_step}\n")
+                    for k, v in proc_acc_container.items():
+                        f.write(f"{k}: {v:.6f}\n")
+                    f.write("\n")
+
+
 
                 if proc_acc_container[acc_name] > proc_acc_best:  # ĐỔI: rx_acc_container → proc_acc_container, rx_acc_best → proc_acc_best
                     proc_acc_best = proc_acc_container[acc_name]  # ĐỔI: rx_acc_best → proc_acc_best
@@ -484,6 +498,17 @@ def main():
             print('')
             acc_container = metric_report(np.concatenate(y_preds, axis=0), np.concatenate(y_trues, axis=0),
                                           args.therhold)
+            print("\n===== FINAL TEST METRICS =====")
+            for k, v in acc_container.items():
+                print(f"{k}: {v:.4f}")
+            print("================================\n")
+
+            # save final test metrics to file
+            with open(os.path.join(args.output_dir, "test_metrics.txt"), "w") as f:
+                f.write("FINAL TEST METRICS\n")
+                for k, v in acc_container.items():
+                    f.write(f"{k}: {v:.6f}\n")
+
 
             # save report
             if args.do_train:

@@ -442,15 +442,27 @@ def main():
                 print('dx2dx')
                 dx2dx_acc_container = metric_report(
                     np.concatenate(dx2dx_y_preds, axis=0), np.concatenate(dx_y_trues, axis=0), args.therhold)
+                for k, v in dx2dx_acc_container.items():
+                    print(f"{k}: {v:.4f}")
+
                 print('proc2dx')  # ĐỔI: rx2dx → proc2dx
                 proc2dx_acc_container = metric_report(  # ĐỔI: rx2dx_acc_container → proc2dx_acc_container
                     np.concatenate(proc2dx_y_preds, axis=0), np.concatenate(dx_y_trues, axis=0), args.therhold)  # ĐỔI: rx2dx_y_preds → proc2dx_y_preds
+                for k, v in proc2dx_acc_container.items():
+                    print(f"{k}: {v:.4f}")
+
                 print('dx2proc')  # ĐỔI: dx2rx → dx2proc
                 dx2proc_acc_container = metric_report(  # ĐỔI: dx2rx_acc_container → dx2proc_acc_container
                     np.concatenate(dx2proc_y_preds, axis=0), np.concatenate(proc_y_trues, axis=0), args.therhold)  # ĐỔI: dx2rx_y_preds → dx2proc_y_preds, rx_y_trues → proc_y_trues
+                for k, v in dx2proc_acc_container.items():
+                    print(f"{k}: {v:.4f}")
+
+
                 print('proc2proc')  # ĐỔI: rx2rx → proc2proc
                 proc2proc_acc_container = metric_report(  # ĐỔI: rx2rx_acc_container → proc2proc_acc_container
                     np.concatenate(proc2proc_y_preds, axis=0), np.concatenate(proc_y_trues, axis=0), args.therhold)  # ĐỔI: rx2rx_y_preds → proc2proc_y_preds, rx_y_trues → proc_y_trues
+                for k, v in proc2proc_acc_container.items():
+                    print(f"{k}: {v:.4f}")
 
                 # keep in history
                 for k, v in dx2dx_acc_container.items():
