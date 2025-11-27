@@ -220,17 +220,15 @@ class GATConv(MessagePassing):
         """"""
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
-        return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))
+        return self.propagate('add', edge_index, x=x)
 
-    def message(self, x_i, x_j, edge_index_i, num_nodes):
-        # Compute attention coefficients.
+    def message(self, x_i, x_j, edge_index_i):
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
         alpha = F.leaky_relu(alpha, self.negative_slope)
-        alpha = softmax(alpha, edge_index_i, num_nodes)  # SỬA: dùng edge_index_i
-
-        alpha = F.dropout(alpha, p=self.dropout, training=self.training)  # SỬA: thêm training
-
+        alpha = softmax(alpha, edge_index_i)
+        alpha = F.dropout(alpha, p=self.dropout, training=self.training)
         return x_j * alpha.view(-1, self.heads, 1)
+
 
     def update(self, aggr_out):
         if self.concat is True:
@@ -256,7 +254,8 @@ class ConcatEmbeddings(nn.Module):
         super(ConcatEmbeddings, self).__init__()
         # special token: "[PAD]", "[CLS]", "[MASK]"
         self.special_embedding = nn.Parameter(
-            torch.Tensor(config.vocab_size - len(dx_voc.idx2word) - len(proc_voc.idx2word), config.hidden_size))  # ĐỔI: rx_voc → proc_voc
+            torch.empty(config.vocab_size - len(dx_voc.idx2word) - len(proc_voc.idx2word), config.hidden_size))
+
         self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,  # ĐỔI: rx_embedding → proc_embedding, build_atc_tree → build_proc_tree
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
