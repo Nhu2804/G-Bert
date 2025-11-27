@@ -20,31 +20,11 @@ class OntologyEmbedding(nn.Module):
 
         # initial tree edges
         res, graph_voc = build_tree_func(list(voc.idx2word.values()))
+        stage_one_edges = build_stage_one_edges(res, graph_voc)
+        stage_two_edges = build_stage_two_edges(res, graph_voc)
 
-        if build_tree_func == build_proc_tree:
-            # PROC: dùng graph đơn giản root-only
-            edges = []
-            for item in res:
-                code = item[0]
-                root = item[-1]
-                c = graph_voc.word2idx[code]
-                r = graph_voc.word2idx[root]
-                edges.append([c, r])
-                edges.append([r, c])
-
-            edges = torch.tensor(edges, dtype=torch.long)   # <=== ép kiểu long
-            edges = edges.t().contiguous()                  # <=== chuyển sang [2, E]
-
-            self.edges1 = edges
-            self.edges2 = edges
-        else:
-            self.edges1 = torch.tensor(build_stage_one_edges(res, graph_voc), dtype=torch.long)
-            self.edges2 = torch.tensor(build_stage_two_edges(res, graph_voc), dtype=torch.long)
-
-        print("=== PROC GRAPH ===" if build_tree_func == build_proc_tree else "=== ICD GRAPH ===")
-        print("num nodes:", len(graph_voc.word2idx))
-        print("num edges:", self.edges1.shape)
-        print("edge sample:", self.edges1[:, :10])
+        self.edges1 = torch.tensor(stage_one_edges)
+        self.edges2 = torch.tensor(stage_two_edges)
         self.graph_voc = graph_voc
 
         # construct model
@@ -233,7 +213,6 @@ class GATConv(MessagePassing):
 
     def forward(self, x, edge_index):
         """"""
-        edge_index = edge_index.long()   # <=== thêm cái này
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
         return self.propagate('add', edge_index, x=x, num_nodes=x.size(0))

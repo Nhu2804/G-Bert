@@ -166,8 +166,10 @@ PROCEDURE (THAY THẾ ATC)
 
 def build_proc_tree(unique_codes):
     """
-    Build procedure ontology for numeric internal procedure codes.
-    Simple tree: code → root.
+    Build ICD-9 Procedure ontology:
+    - 2-digit: organ system / procedure group
+    - 3-digit: procedure sub-type
+    - full code: specific procedure
     """
     res = []
     graph_voc = Voc()
@@ -175,8 +177,15 @@ def build_proc_tree(unique_codes):
     root_node = 'proc_root'
 
     for code in unique_codes:
-        sample = [code, root_node]        # cặp bố-con
-        graph_voc.add_sentence(sample)    # ADD CẢ SAMPLE
+        code = str(code)
+
+        level3 = code           # ví dụ 3893
+        level2 = code[:3]       # 389
+        level1 = code[:2]       # 38
+        level0 = root_node      # proc_root
+
+        sample = [level3, level2, level1, level0]
+        graph_voc.add_sentence(sample)
         res.append(sample)
 
     return res, graph_voc
