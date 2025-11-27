@@ -266,9 +266,12 @@ class ConcatEmbeddings(nn.Module):
         self.init_params()
 
     def forward(self, input_ids):
-        emb = torch.cat(
-            [self.special_embedding, self.proc_embedding(), self.dx_embedding()], dim=0)  # ĐỔI: rx_embedding → proc_embedding
+        proc = self.proc_embedding()
+        dx   = self.dx_embedding()
+
+        emb = torch.cat([self.special_embedding, proc, dx], dim=0)
         return emb[input_ids]
+
 
     def init_params(self):
         glorot(self.special_embedding)
