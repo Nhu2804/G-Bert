@@ -30,6 +30,19 @@ class OntologyEmbedding(nn.Module):
         stage_one_edges = build_stage_one_edges(res, graph_voc)
         stage_two_edges = build_stage_two_edges(res, graph_voc)
 
+        print("\n========== EDGES DEBUG ==========")
+        print("edges1 shape:", np.array(stage_one_edges).shape)
+        print("edges2 shape:", np.array(stage_two_edges).shape)
+
+        if len(stage_one_edges) > 0:
+            print("edges1 sample:", stage_one_edges[:10])
+            print("max index in edges1:", np.max(stage_one_edges))
+        if len(stage_two_edges) > 0:
+            print("edges2 sample:", stage_two_edges[:10])
+            print("max index in edges2:", np.max(stage_two_edges))
+        print("=================================\n")
+
+
         self.edges1 = torch.tensor(stage_one_edges)
         self.edges2 = torch.tensor(stage_two_edges)
         self.graph_voc = graph_voc
@@ -262,6 +275,7 @@ class ConcatEmbeddings(nn.Module):
         self.proc_embedding = OntologyEmbedding(proc_voc, build_proc_tree,  # ĐỔI: rx_embedding → proc_embedding, build_atc_tree → build_proc_tree
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
+        
         self.dx_embedding = OntologyEmbedding(dx_voc, build_icd9_tree,
                                               config.hidden_size, config.graph_hidden_size,
                                               config.graph_heads)
