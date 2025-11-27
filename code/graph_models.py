@@ -217,10 +217,15 @@ class GATConv(MessagePassing):
         zeros(self.bias)
 
     def forward(self, x, edge_index):
-        """"""
-        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
+        # add self loops CHÍNH XÁC
+        edge_index = add_self_loops(edge_index, num_nodes=x.size(0))[0]
+        edge_index = edge_index.long().contiguous().view(2, -1)
+
+        # linear projection
         x = torch.mm(x, self.weight).view(-1, self.heads, self.out_channels)
+
         return self.propagate('add', edge_index, x=x)
+
 
     def message(self, x_i, x_j, edge_index_i):
         alpha = (torch.cat([x_i, x_j], dim=-1) * self.att).sum(dim=-1)
